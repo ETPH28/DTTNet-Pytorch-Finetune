@@ -126,6 +126,12 @@ variable "artifacts_bucket" {
   type        = string
 }
 
+variable "data_bucket_names" {
+  description = "Additional S3 bucket names to allow dataset sync (without s3:// prefix)."
+  type        = list(string)
+  default     = []
+}
+
 variable "artifacts_prefix" {
   description = "Prefix used for checkpoints and logs inside artifacts bucket."
   type        = string
@@ -136,6 +142,42 @@ variable "dataset_s3_prefix" {
   description = "Optional dataset prefix (e.g. s3://bucket/musdb18HQ). Leave empty to skip sync."
   type        = string
   default     = ""
+}
+
+variable "dataset_upload_s3_prefix" {
+  description = "Optional destination prefix to upload local dataset (e.g. s3://bucket/musdb18HQ)."
+  type        = string
+  default     = ""
+}
+
+variable "augmentation_upload_s3_prefix" {
+  description = "Optional destination prefix to upload augmented dataset."
+  type        = string
+  default     = ""
+}
+
+variable "sync_dataset_on_boot" {
+  description = "If true, sync dataset from dataset_s3_prefix to local_data_dir at boot."
+  type        = bool
+  default     = true
+}
+
+variable "sync_dataset_to_s3_on_boot" {
+  description = "If true, sync local_data_dir to dataset_upload_s3_prefix at boot."
+  type        = bool
+  default     = false
+}
+
+variable "enable_data_augmentation" {
+  description = "If true, run src/utils/data_augmentation.py against local_data_dir after download."
+  type        = bool
+  default     = false
+}
+
+variable "run_training_on_boot" {
+  description = "If true, launch training command in background at boot."
+  type        = bool
+  default     = true
 }
 
 variable "repo_url" {

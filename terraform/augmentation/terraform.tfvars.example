@@ -1,0 +1,45 @@
+aws_region  = "us-east-1"
+aws_profile = "ddtnet"
+
+project_name = "dttnet"
+environment  = "dev"
+
+vpc_id    = "vpc-xxxxxxxx"
+subnet_id = "subnet-xxxxxxxx"
+
+# Cheap default; increase if job is too slow.
+instance_type = "c6i.2xlarge"
+
+# Ubuntu AMI recommended.
+ami_id = "ami-xxxxxxxx"
+
+# 1.2 TB default so full augmentation has enough headroom.
+root_volume_size_gb   = 1200
+root_volume_iops      = 3000
+root_volume_throughput = 125
+
+enable_ssh_ingress = false
+ssh_cidr           = "0.0.0.0/0"
+key_name           = ""
+
+source_bucket_name      = "dttnet-dev-artifacts-873851887849"
+destination_bucket_name = "dttnet-dev-artifacts-873851887849"
+
+source_s3_prefix      = "s3://dttnet-dev-artifacts-873851887849/musdb18HQ"
+destination_s3_prefix = "s3://dttnet-dev-artifacts-873851887849/musdb18HQ-aug"
+
+repo_url   = "https://github.com/your-org/DTTNet-Pytorch-Finetune.git"
+git_branch = "main"
+
+local_repo_dir = "/opt/DTTNet-Pytorch-Finetune"
+local_data_dir = "/data/musdb18HQ"
+
+run_train_split = true
+run_valid_split = false
+run_test_split  = false
+
+terminate_on_completion = true
+
+tags = {
+  Owner = "your-name"
+}

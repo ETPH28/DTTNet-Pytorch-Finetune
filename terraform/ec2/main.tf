@@ -58,9 +58,10 @@ resource "aws_iam_role_policy" "s3_access" {
         Action = [
           "s3:ListBucket"
         ]
-        Resource = [
-          "arn:aws:s3:::${var.artifacts_bucket}"
-        ]
+        Resource = concat(
+          ["arn:aws:s3:::${var.artifacts_bucket}"],
+          [for b in var.data_bucket_names : "arn:aws:s3:::${b}"]
+        )
       },
       {
         Effect = "Allow"
@@ -69,9 +70,10 @@ resource "aws_iam_role_policy" "s3_access" {
           "s3:PutObject",
           "s3:DeleteObject"
         ]
-        Resource = [
-          "arn:aws:s3:::${var.artifacts_bucket}/*"
-        ]
+        Resource = concat(
+          ["arn:aws:s3:::${var.artifacts_bucket}/*"],
+          [for b in var.data_bucket_names : "arn:aws:s3:::${b}/*"]
+        )
       }
     ]
   })
@@ -134,15 +136,21 @@ resource "aws_launch_template" "training" {
   }
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh.tmpl", {
-    repo_url          = var.repo_url
-    git_branch        = var.git_branch
-    local_repo_dir    = var.local_repo_dir
-    local_data_dir    = var.local_data_dir
-    artifacts_bucket  = var.artifacts_bucket
-    artifacts_prefix  = var.artifacts_prefix
-    dataset_s3_prefix = var.dataset_s3_prefix
-    training_command  = var.training_command
-    aws_region        = var.aws_region
+    repo_url                     = var.repo_url
+    git_branch                   = var.git_branch
+    local_repo_dir               = var.local_repo_dir
+    local_data_dir               = var.local_data_dir
+    artifacts_bucket             = var.artifacts_bucket
+    artifacts_prefix             = var.artifacts_prefix
+    dataset_s3_prefix            = var.dataset_s3_prefix
+    dataset_upload_s3_prefix     = var.dataset_upload_s3_prefix
+    augmentation_upload_s3_prefix = var.augmentation_upload_s3_prefix
+    sync_dataset_on_boot         = var.sync_dataset_on_boot
+    sync_dataset_to_s3_on_boot   = var.sync_dataset_to_s3_on_boot
+    enable_data_augmentation     = var.enable_data_augmentation
+    run_training_on_boot         = var.run_training_on_boot
+    training_command             = var.training_command
+    aws_region                   = var.aws_region
   }))
 
   tag_specifications {

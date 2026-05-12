@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+
+exec > >(tee -a /var/log/dtt-augmentation-bootstrap.log) 2>&1
+
+export DEBIAN_FRONTEND=noninteractive
+
+if command -v apt-get >/dev/null 2>&1; then
+  apt-get update -y
+  apt-get install -y git awscli python3 python3-pip soundstretch
+elif command -v yum >/dev/null 2>&1; then
+  yum update -y
+  yum install -y git awscli python3 python3-pip || true
+fi
+
+mkdir -p /opt
+if [ ! -d "${local_repo_dir}/.git" ]; then
+  git clone "${repo_url}" "${local_repo_dir}"
+fi
+
+cd "${local_repo_dir}"
+git fetch --all
+git checkout "${git_branch}"
+git pull --ff-only origin "${git_branch}"
+
+python3 -m pip install --upgrade pip
+if [ -f requirements.txt ]; then
+  python3 -m pip install -r requirements.txt
+fi
+
+mkdir -p /root/autodl-tmp/tmp
+mkdir -p "${local_data_dir}"
+
+aws s3 sync "${source_s3_prefix}" "${local_data_dir}" --region "${aws_region}"
+
+python3 - <<'PY'
+from types import SimpleNamespace
+from src.utils.data_augmentation import main
+
+args = SimpleNamespace(
+    data_dir="${local_data_dir}/",
+    train=${run_train_split},
+    valid=${run_valid_split},
+    test=${run_test_split},
+)
+main(args)
+PY
+
+aws s3 sync "${local_data_dir}" "${destination_s3_prefix}" --region "${aws_region}"
+
+if [ "${shutdown_on_finish}" = "true" ]; then
+  shutdown -h now
+fi

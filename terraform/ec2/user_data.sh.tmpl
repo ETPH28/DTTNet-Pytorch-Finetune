@@ -29,8 +29,34 @@ if [ -f requirements.txt ]; then
 fi
 
 mkdir -p "${local_data_dir}"
-if [ -n "${dataset_s3_prefix}" ]; then
+
+if [ "${sync_dataset_on_boot}" = "true" ] && [ -n "${dataset_s3_prefix}" ]; then
   aws s3 sync "${dataset_s3_prefix}" "${local_data_dir}" --region "${aws_region}"
+fi
+
+if [ "${enable_data_augmentation}" = "true" ]; then
+  if ! command -v soundstretch >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+      apt-get install -y soundstretch
+    elif command -v yum >/dev/null 2>&1; then
+      yum install -y soundstretch || true
+    fi
+  fi
+  if ! command -v soundstretch >/dev/null 2>&1; then
+    echo "soundstretch is required for augmentation but is not installed."
+    exit 1
+  fi
+  mkdir -p /root/autodl-tmp/tmp
+  DATA_DIR_WITH_SLASH="${local_data_dir}/"
+  mkdir -p /tmp/dtt-aug
+  python3 src/utils/data_augmentation.py --data_dir "${DATA_DIR_WITH_SLASH}"
+  if [ -n "${augmentation_upload_s3_prefix}" ]; then
+    aws s3 sync "${local_data_dir}" "${augmentation_upload_s3_prefix}" --region "${aws_region}"
+  fi
+fi
+
+if [ "${sync_dataset_to_s3_on_boot}" = "true" ] && [ -n "${dataset_upload_s3_prefix}" ]; then
+  aws s3 sync "${local_data_dir}" "${dataset_upload_s3_prefix}" --region "${aws_region}"
 fi
 
 mkdir -p outputs
@@ -49,4 +75,8 @@ if [ -n "$LATEST_CKPT_S3" ]; then
   RESUME_ARG="trainer.resume_from_checkpoint=/opt/checkpoints/resume.ckpt"
 fi
 
-nohup bash -lc "${training_command} ${RESUME_ARG}" > /var/log/dtt-train.log 2>&1 &
+if [ "${run_training_on_boot}" = "true" ]; then
+  nohup bash -lc "${training_command} ${RESUME_ARG}" > /var/log/dtt-train.log 2>&1 &
+else
+  echo "run_training_on_boot=false: skipping automatic training startup."
+fi

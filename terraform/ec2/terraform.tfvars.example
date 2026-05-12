@@ -33,10 +33,18 @@ ssh_cidr           = "0.0.0.0/0"
 key_name           = ""
 
 artifacts_bucket = "your-dtt-artifacts-bucket"
+data_bucket_names = ["your-dtt-artifacts-bucket"]
 artifacts_prefix = "dtt-runs"
 
 # Optional dataset sync source.
 dataset_s3_prefix = "s3://your-dataset-bucket/musdb18HQ"
+dataset_upload_s3_prefix = ""
+augmentation_upload_s3_prefix = "s3://your-dataset-bucket/musdb18HQ-augmented"
+
+sync_dataset_on_boot       = true
+sync_dataset_to_s3_on_boot = false
+enable_data_augmentation   = false
+run_training_on_boot       = true
 
 # Replace with your repo.
 repo_url    = "https://github.com/your-org/DTTNet-Pytorch-Finetune.git"
