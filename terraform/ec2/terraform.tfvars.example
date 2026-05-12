@@ -1,0 +1,51 @@
+aws_region  = "us-east-1"
+aws_profile = "default"
+
+project_name = "dttnet"
+environment  = "dev"
+
+vpc_id = "vpc-xxxxxxxx"
+subnet_ids = [
+  "subnet-aaaaaaaa",
+  "subnet-bbbbbbbb"
+]
+
+# Use a GPU-ready AMI, such as an AWS Deep Learning AMI.
+ami_id = "ami-xxxxxxxx"
+
+instance_types = ["g6e.xlarge"]
+
+min_size         = 1
+max_size         = 4
+desired_capacity = 1
+
+# 100 = all On-Demand, 0 = all Spot above base capacity.
+on_demand_base_capacity                  = 0
+on_demand_percentage_above_base_capacity = 100
+spot_allocation_strategy                 = "capacity-optimized"
+
+root_volume_size_gb = 1024
+root_volume_iops    = 3000
+root_volume_throughput = 125
+
+enable_ssh_ingress = false
+ssh_cidr           = "0.0.0.0/0"
+key_name           = ""
+
+artifacts_bucket = "your-dtt-artifacts-bucket"
+artifacts_prefix = "dtt-runs"
+
+# Optional dataset sync source.
+dataset_s3_prefix = "s3://your-dataset-bucket/musdb18HQ"
+
+# Replace with your repo.
+repo_url    = "https://github.com/your-org/DTTNet-Pytorch-Finetune.git"
+git_branch  = "main"
+local_repo_dir = "/opt/DTTNet-Pytorch-Finetune"
+local_data_dir = "/data/musdb18HQ"
+
+training_command = "python train.py experiment=vocals_dis datamodule=musdb_dev14 trainer=default trainer.devices=1 model.bn_norm=BN ~trainer.sync_batchnorm datamodule.batch_size=4"
+
+tags = {
+  Owner = "your-name"
+}

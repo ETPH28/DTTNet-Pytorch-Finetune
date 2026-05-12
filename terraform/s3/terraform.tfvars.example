@@ -1,0 +1,18 @@
+aws_region   = "us-east-1"
+aws_profile  = "default"
+project_name = "dttnet"
+environment  = "dev"
+
+# Leave empty to auto-generate.
+bucket_name = ""
+
+force_destroy = false
+
+enable_lifecycle          = true
+lifecycle_prefix          = "checkpoints/"
+lifecycle_expiration_days = 30
+lifecycle_noncurrent_days = 14
+
+tags = {
+  Owner = "your-name"
+}

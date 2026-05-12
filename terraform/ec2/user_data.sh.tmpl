@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+
+exec > >(tee -a /var/log/dtt-bootstrap.log) 2>&1
+
+export DEBIAN_FRONTEND=noninteractive
+
+if command -v apt-get >/dev/null 2>&1; then
+  apt-get update -y
+  apt-get install -y git awscli python3 python3-pip
+elif command -v yum >/dev/null 2>&1; then
+  yum update -y
+  yum install -y git awscli python3 python3-pip
+fi
+
+mkdir -p /opt
+if [ ! -d "${local_repo_dir}/.git" ]; then
+  git clone "${repo_url}" "${local_repo_dir}"
+fi
+
+cd "${local_repo_dir}"
+git fetch --all
+git checkout "${git_branch}"
+git pull --ff-only origin "${git_branch}"
+
+python3 -m pip install --upgrade pip
+if [ -f requirements.txt ]; then
+  python3 -m pip install -r requirements.txt
+fi
+
+mkdir -p "${local_data_dir}"
+if [ -n "${dataset_s3_prefix}" ]; then
+  aws s3 sync "${dataset_s3_prefix}" "${local_data_dir}" --region "${aws_region}"
+fi
+
+mkdir -p outputs
+
+export data_dir="${local_data_dir}"
+export PROJECT_ROOT="${local_repo_dir}"
+export LOG_DIR="${local_repo_dir}/outputs"
+export NUM_WORKERS=4
+
+LATEST_CKPT_S3="$(aws s3 ls "s3://${artifacts_bucket}/${artifacts_prefix}/checkpoints/" --recursive --region "${aws_region}" | awk '{print $4}' | grep -E '\.ckpt$' | tail -n 1 || true)"
+RESUME_ARG=""
+
+if [ -n "$LATEST_CKPT_S3" ]; then
+  mkdir -p /opt/checkpoints
+  aws s3 cp "s3://${artifacts_bucket}/${LATEST_CKPT_S3}" /opt/checkpoints/resume.ckpt --region "${aws_region}"
+  RESUME_ARG="trainer.resume_from_checkpoint=/opt/checkpoints/resume.ckpt"
+fi
+
+nohup bash -lc "${training_command} ${RESUME_ARG}" > /var/log/dtt-train.log 2>&1 &
