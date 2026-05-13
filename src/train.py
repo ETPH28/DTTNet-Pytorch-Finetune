@@ -58,6 +58,16 @@ def train(cfg: DictConfig) -> Optional[float]:
     log.info(f"Instantiating model <{cfg.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(cfg.model)
 
+    # Optional fine-tune initialization from a checkpoint.
+    # This loads model weights only (not optimizer/scheduler state), so LR and
+    # other optimization hyperparameters come from the current config.
+    model_init_ckpt = cfg.get("model_init_ckpt")
+    if model_init_ckpt:
+        log.info(f"Initializing model weights from checkpoint <{model_init_ckpt}>")
+        checkpoint = torch.load(model_init_ckpt, map_location="cpu")
+        state_dict = checkpoint["state_dict"] if isinstance(checkpoint, dict) and "state_dict" in checkpoint else checkpoint
+        model.load_state_dict(state_dict, strict=True)
+
     # Init Lightning callbacks
     callbacks: List[Callback] = []
     if "callbacks" in cfg:
