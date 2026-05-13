@@ -7,10 +7,10 @@ export DEBIAN_FRONTEND=noninteractive
 
 if command -v apt-get >/dev/null 2>&1; then
   apt-get update -y
-  apt-get install -y git awscli python3 python3-pip soundstretch
+  apt-get install -y git awscli python3 python3-pip python3-venv soundstretch ffmpeg
 elif command -v yum >/dev/null 2>&1; then
   yum update -y
-  yum install -y git awscli python3 python3-pip || true
+  yum install -y git awscli python3 python3-pip ffmpeg || true
 fi
 
 mkdir -p /opt
@@ -23,28 +23,26 @@ git fetch --all
 git checkout "${git_branch}"
 git pull --ff-only origin "${git_branch}"
 
-python3 -m pip install --upgrade pip
+python3 -m venv /opt/dtt-venv
+# shellcheck disable=SC1091
+source /opt/dtt-venv/bin/activate
+python -m pip install --upgrade pip
 if [ -f requirements.txt ]; then
-  python3 -m pip install -r requirements.txt
+  python -m pip install -r requirements.txt
 fi
+# Keep NumPy ABI compatible with torch==1.13 wheels used by this project.
+python -m pip install "numpy<2"
 
 mkdir -p /root/autodl-tmp/tmp
 mkdir -p "${local_data_dir}"
 
 aws s3 sync "${source_s3_prefix}" "${local_data_dir}" --region "${aws_region}"
 
-python3 - <<'PY'
-from types import SimpleNamespace
-from src.utils.data_augmentation import main
-
-args = SimpleNamespace(
-    data_dir="${local_data_dir}/",
-    train=${run_train_split},
-    valid=${run_valid_split},
-    test=${run_test_split},
-)
-main(args)
-PY
+python src/utils/data_augmentation.py \
+  --data_dir "${local_data_dir}/" \
+  --train "${run_train_split}" \
+  --valid "${run_valid_split}" \
+  --test "${run_test_split}"
 
 aws s3 sync "${local_data_dir}" "${destination_s3_prefix}" --region "${aws_region}"
 

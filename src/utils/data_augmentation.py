@@ -14,6 +14,17 @@ warnings.simplefilter(action='ignore', category=Warning)
 source_names = ['vocals', 'drums', 'bass', 'other']
 sample_rate = 44100
 
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    value = str(v).strip().lower()
+    if value in {"true", "1", "yes", "y"}:
+        return True
+    if value in {"false", "0", "no", "n"}:
+        return False
+    raise ValueError(f"Invalid boolean value: {v}")
+
 def main (args):
     data_root = args.data_dir
     train = args.train
@@ -66,8 +77,10 @@ def shift(wav, pitch, tempo, voice=False, quick=False, samplerate=44100):
     https://www.surina.net/soundtouch/soundstretch.html
     """
 
-    inputfile = tempfile.NamedTemporaryFile(dir="/root/autodl-tmp/tmp", suffix=".wav")
-    outfile = tempfile.NamedTemporaryFile(dir="/root/autodl-tmp/tmp", suffix=".wav")
+    tmp_dir = os.environ.get("DTT_AUG_TMP_DIR", "/tmp/dtt-aug-tmp")
+    os.makedirs(tmp_dir, exist_ok=True)
+    inputfile = tempfile.NamedTemporaryFile(dir=tmp_dir, suffix=".wav")
+    outfile = tempfile.NamedTemporaryFile(dir=tmp_dir, suffix=".wav")
 
     sf.write(inputfile.name, data=i16_pcm(wav).t().numpy(), samplerate=samplerate, format='WAV')
     command = [
@@ -121,8 +134,8 @@ def load_wav(path, sr=None):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--data_dir', type=str)
-    parser.add_argument('--train', type=bool, default=True)
-    parser.add_argument('--valid', type=bool, default=False)
-    parser.add_argument('--test', type=bool, default=False)
+    parser.add_argument('--train', type=str2bool, default=True)
+    parser.add_argument('--valid', type=str2bool, default=False)
+    parser.add_argument('--test', type=str2bool, default=False)
 
     main(parser.parse_args())

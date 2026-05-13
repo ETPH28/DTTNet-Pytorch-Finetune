@@ -7,10 +7,10 @@ export DEBIAN_FRONTEND=noninteractive
 
 if command -v apt-get >/dev/null 2>&1; then
   apt-get update -y
-  apt-get install -y git awscli python3 python3-pip
+  apt-get install -y git awscli python3 python3-pip python3-venv ffmpeg
 elif command -v yum >/dev/null 2>&1; then
   yum update -y
-  yum install -y git awscli python3 python3-pip
+  yum install -y git awscli python3 python3-pip ffmpeg || true
 fi
 
 mkdir -p /opt
@@ -23,10 +23,15 @@ git fetch --all
 git checkout "${git_branch}"
 git pull --ff-only origin "${git_branch}"
 
-python3 -m pip install --upgrade pip
+python3 -m venv /opt/dtt-venv
+# shellcheck disable=SC1091
+source /opt/dtt-venv/bin/activate
+python -m pip install --upgrade pip
 if [ -f requirements.txt ]; then
-  python3 -m pip install -r requirements.txt
+  python -m pip install -r requirements.txt
 fi
+# Keep NumPy ABI compatible with torch==1.13 wheels used by this project.
+python -m pip install "numpy<2"
 
 mkdir -p "${local_data_dir}"
 
@@ -49,7 +54,7 @@ if [ "${enable_data_augmentation}" = "true" ]; then
   mkdir -p /root/autodl-tmp/tmp
   DATA_DIR_WITH_SLASH="${local_data_dir}/"
   mkdir -p /tmp/dtt-aug
-  python3 src/utils/data_augmentation.py --data_dir "${DATA_DIR_WITH_SLASH}"
+  python3 src/utils/data_augmentation.py --data_dir "$${DATA_DIR_WITH_SLASH}"
   if [ -n "${augmentation_upload_s3_prefix}" ]; then
     aws s3 sync "${local_data_dir}" "${augmentation_upload_s3_prefix}" --region "${aws_region}"
   fi
@@ -71,12 +76,12 @@ RESUME_ARG=""
 
 if [ -n "$LATEST_CKPT_S3" ]; then
   mkdir -p /opt/checkpoints
-  aws s3 cp "s3://${artifacts_bucket}/${LATEST_CKPT_S3}" /opt/checkpoints/resume.ckpt --region "${aws_region}"
+  aws s3 cp "s3://${artifacts_bucket}/$${LATEST_CKPT_S3}" /opt/checkpoints/resume.ckpt --region "${aws_region}"
   RESUME_ARG="trainer.resume_from_checkpoint=/opt/checkpoints/resume.ckpt"
 fi
 
 if [ "${run_training_on_boot}" = "true" ]; then
-  nohup bash -lc "${training_command} ${RESUME_ARG}" > /var/log/dtt-train.log 2>&1 &
+  nohup bash -lc "${training_command} $${RESUME_ARG}" > /var/log/dtt-train.log 2>&1 &
 else
   echo "run_training_on_boot=false: skipping automatic training startup."
 fi
