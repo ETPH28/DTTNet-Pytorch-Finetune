@@ -161,6 +161,8 @@ notebooks/
 pretrained/
 
 musdb18HQ/
+infer/
+dtt/
 
 # Terraform
 **/.terraform/*

@@ -57,6 +57,9 @@ This stack is intended as a batch job. With `terminate_on_completion=true`, the 
 - Checkpoint frequently to S3 in your training command so restarts can resume.
 - Data pipeline toggles (in `ec2/terraform.tfvars`):
   - `sync_dataset_on_boot`: pull dataset from S3 to local disk.
+  - `proposed_augmentation_s3_prefix`: optional pull of proposed augmentation variants (e.g. `s3://.../custom_aug`) into `${local_data_dir}/custom_aug`.
   - `enable_data_augmentation`: run `src/utils/data_augmentation.py` on instance.
   - `augmentation_upload_s3_prefix`: push augmented dataset back to S3.
+  - `initial_weights_s3_uri`: optional base checkpoint used to initialize fine-tuning weights (without optimizer state resume).
+  - `checkpoint_sync_interval_seconds`: periodic upload interval for `.ckpt` files while training runs.
   - `run_training_on_boot`: disable to evaluate instance setup without launching training.

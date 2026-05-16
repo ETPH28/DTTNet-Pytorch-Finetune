@@ -3,8 +3,8 @@
 This stack launches a single EC2 worker for dataset augmentation:
 
 1. Syncs dataset from `source_s3_prefix` to local disk.
-2. Runs `src/utils/data_augmentation.py`.
-3. Syncs results to `destination_s3_prefix`.
+2. Runs `augmenter-script/musdb_augmenter.py`.
+3. Syncs results from `${local_data_dir}/custom_aug` to `destination_s3_prefix`.
 4. Optionally shuts down and terminates itself (`terminate_on_completion=true`).
 
 ## Usage
